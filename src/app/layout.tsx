@@ -10,8 +10,8 @@ const inter = Inter({ subsets: ['latin'] });
 
 // Metadata for SEO
 export const metadata: Metadata = {
-  title: 'PlayArena',
-  description: 'Book your sports turf',
+  title: 'SportGrid',
+  description: 'Book your sport',
 };
 
 // Root Layout Component

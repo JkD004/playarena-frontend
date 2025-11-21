@@ -88,9 +88,9 @@ const Header = () => {
           <Link 
             href="/" 
             className="text-xl font-semibold text-white hover:text-gray-200"
-            aria-label="PlayArena Home"
+            aria-label="SportGrid Home"
           >
-            PlayArena
+            SportGrid
           </Link>
         </div>
 
