@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 // Interface for Photos
 interface VenuePhoto {
@@ -160,7 +161,7 @@ export default function EditVenuePage() {
          setPhotos(await newPhotosRes.json());
       }
     } catch (err) {
-      alert("Delete failed");
+      toast.success("Delete failed");
     }
   };
 

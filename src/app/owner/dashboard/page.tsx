@@ -7,7 +7,6 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
 import DashboardChart from '@/components/DashboardChart';
 
-// Interface for the Venue List
 interface Venue {
   id: number;
   status: string;
@@ -16,7 +15,6 @@ interface Venue {
   price_per_hour: number;
 }
 
-// Interface for the Chart Data (from API)
 interface VenueStats {
   venue_name: string;
   total_bookings: number;
@@ -25,18 +23,18 @@ interface VenueStats {
 
 export default function OwnerDashboardPage() {
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [chartData, setChartData] = useState<any[]>([]); // State for the chart
+  const [chartData, setChartData] = useState<any[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
 
-  // 1. Fetch Venue List
   useEffect(() => {
     if (!token) return;
     const fetchMyVenues = async () => {
       setIsLoading(true);
+      setError(null);
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/venues/mine`, {
+        const res = await fetch('http://localhost:8080/api/v1/venues/mine', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch venues');
@@ -51,18 +49,16 @@ export default function OwnerDashboardPage() {
     fetchMyVenues();
   }, [token]);
 
-  // 2. Fetch Chart Data (Real Stats)
   useEffect(() => {
     if (!token) return;
     const fetchChartData = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/owner/stats/by-venue`, {
+        const res = await fetch('http://localhost:8080/api/v1/owner/stats/by-venue', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch stats');
         const data: VenueStats[] = await res.json();
         
-        // Transform API data for the Recharts component
         const formattedData = data.map(item => ({
           name: item.venue_name,
           bookings: item.total_bookings,
@@ -102,12 +98,10 @@ export default function OwnerDashboardPage() {
             </Link>
           </div>
           
-          {/* --- Chart Section (Real Data) --- */}
           <div className="mb-8">
              <DashboardChart data={chartData} />
           </div>
 
-          {/* --- My Venues List Section (as Cards) --- */}
           <div>
             {isLoading && <p className="text-gray-700">Loading your venues...</p>}
             {error && <p className="text-red-500">Error: {error}</p>}
@@ -131,20 +125,34 @@ export default function OwnerDashboardPage() {
                           </div>
                           <p className="text-gray-700 mb-4">₹{venue.price_per_hour.toFixed(2)} / hour</p>
                         </div>
-                        <div className="bg-gray-50 px-6 py-4 flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
+                        
+                        {/* --- ACTION BUTTONS --- */}
+                        <div className="bg-gray-50 px-4 py-4 flex flex-col gap-2">
+                          <div className="flex gap-2">
+                            <Link 
+                                href={`/owner/venues/${venue.id}/dashboard`} 
+                                className="flex-1 py-2 px-2 text-center bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium"
+                            >
+                                Stats & Bookings
+                            </Link>
+                            <Link 
+                                href={`/owner/venues/${venue.id}/edit`} 
+                                className="flex-1 py-2 px-2 text-center bg-gray-200 hover:bg-gray-300 text-black rounded text-sm font-medium"
+                            >
+                                Edit/Photos
+                            </Link>
+                          </div>
+                          
+                          {/* --- NEW SCHEDULE BUTTON --- */}
                           <Link 
-                            href={`/owner/venues/${venue.id}/dashboard`} 
-                            className="flex-1 py-2 px-3 text-center bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold text-sm"
+                            href={`/owner/venues/${venue.id}/schedule`} 
+                            className="w-full py-2 px-2 text-center bg-purple-600 hover:bg-purple-700 text-white rounded text-sm font-medium"
                           >
-                            Stats & Bookings
-                          </Link>
-                          <Link 
-                            href={`/owner/venues/${venue.id}/edit`} 
-                            className="flex-1 py-2 px-3 text-center bg-gray-200 hover:bg-gray-300 text-black rounded-md font-semibold text-sm"
-                          >
-                            Edit/Photos
+                            View Schedule
                           </Link>
                         </div>
+                        {/* ---------------------- */}
+
                       </div>
                     ))}
                   </div>

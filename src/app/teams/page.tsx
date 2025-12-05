@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 // Define the shape of the team data
 interface UserTeam {
@@ -68,7 +69,7 @@ export default function ExistingTeamsPage() {
       fetchMyTeams();
 
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'An unknown error occurred');
+      toast.success(err instanceof Error ? err.message : 'An unknown error occurred');
     }
   };
 

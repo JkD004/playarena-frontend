@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 import { User as UserIcon, Camera } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function EditProfilePage() {
   const { token } = useAuth();
@@ -72,7 +73,7 @@ export default function EditProfilePage() {
       setAvatarUrl(data.url); // Set the real URL from server
       
     } catch (err) {
-      alert("Failed to upload profile picture");
+      toast.success("Failed to upload profile picture");
     }
   };
 
@@ -96,10 +97,10 @@ export default function EditProfilePage() {
       if (res.ok) {
         router.push('/profile/info');
       } else {
-        alert("Failed to update profile");
+        toast.success("Failed to update profile");
       }
     } catch (err) {
-      alert("Error updating profile");
+      toast.success("Error updating profile");
     } finally {
       setIsSaving(false);
     }

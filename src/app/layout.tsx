@@ -4,6 +4,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import { AuthProvider } from '@/context/AuthContext'; // 1. Import AuthProvider
+import PageTransition from '@/components/PageTransition';
+import { Toaster } from 'react-hot-toast';
 
 // Font setup
 const inter = Inter({ subsets: ['latin'] });
@@ -23,10 +25,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider> {/* 2. Wrap with AuthProvider */}
+        <AuthProvider>
           <Header />
-          <main>{children}</main>
-        </AuthProvider> {/* 3. Close wrapper */}
+          <main>
+            <PageTransition>{children}</PageTransition>
+          </main>
+          <Toaster position="top-center" /> {/* Add this line */}
+        </AuthProvider>
       </body>
     </html>
   );

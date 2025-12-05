@@ -25,30 +25,66 @@ export default function VenueSchedulePage() {
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null); // For Modal
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch bookings
-  useEffect(() => {
+  // Fetch bookings function (reused for refreshing)
+  const fetchBookings = async () => {
     if (!token) return;
-    const fetchBookings = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch(`http://localhost:8080/api/v1/venues/${venueId}/bookings`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setBookings(data);
+    // Don't set full loading on refresh to keep UI stable
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/venues/${venueId}/bookings`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBookings(data);
+        
+        // Update selected booking if it's open
+        if (selectedBooking) {
+             const updated = data.find((b: Booking) => b.booking_id === selectedBooking.booking_id);
+             if(updated) setSelectedBooking(updated);
         }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setIsLoading(true);
     fetchBookings();
   }, [token, venueId]);
+
+  // Handle Status Change
+  const handleStatusUpdate = async (status: 'present' | 'absent' | 'canceled') => {
+    if (!selectedBooking || !token) return;
+    
+    if (!confirm(`Mark this booking as ${status.toUpperCase()}?`)) return;
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/owner/bookings/${selectedBooking.booking_id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (res.ok) {
+        alert(`Booking marked as ${status}`);
+        fetchBookings(); // Refresh data
+        // Optionally close modal: setSelectedBooking(null);
+      } else {
+        alert("Failed to update status");
+      }
+    } catch (err) {
+      alert("Error updating status");
+    }
+  };
 
   // Filter bookings for the selected date
   const dailyBookings = bookings.filter(b => {
@@ -59,13 +95,35 @@ export default function VenueSchedulePage() {
   // Generate time slots (06:00 to 23:00)
   const timeSlots = Array.from({ length: 18 }, (_, i) => i + 6);
 
-  // Helper to check if a slot has a booking
-  const getBookingForSlot = (hour: number) => {
-    return dailyBookings.find(b => {
-      const startHour = new Date(b.start_time).getHours();
-      return startHour === hour && b.status === 'confirmed';
-    });
-  };
+const getBookingForSlot = (hour: number) => {
+
+  // Build the UTC-start + UTC-end for the slot
+  const year = selectedDate.getFullYear();
+  const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+  const day = String(selectedDate.getDate()).padStart(2, "0");
+
+  const localSlot = new Date(`${year}-${month}-${day}T${hour.toString().padStart(2, "0")}:00:00`);
+  const slotStartUTC = localSlot.getTime();
+  const slotEndUTC = slotStartUTC + 60 * 60 * 1000;
+
+  return dailyBookings.find(b => {
+    const bookingStart = new Date(b.start_time).getTime();
+    const bookingEnd = new Date(b.end_time).getTime();
+
+    // Correct overlap logic:
+    return slotStartUTC < bookingEnd && slotEndUTC > bookingStart && b.status !== "canceled";
+  });
+};
+
+
+  // Color helper
+  const getStatusBadgeColor = (status: string) => {
+      switch(status) {
+          case 'present': return 'bg-blue-100 text-blue-800 border-blue-300';
+          case 'absent': return 'bg-red-100 text-red-800 border-red-300';
+          default: return 'bg-green-100 text-green-800 border-green-300';
+      }
+  }
 
   return (
     <ProtectedRoute allowedRoles={['owner', 'admin']}>
@@ -76,7 +134,6 @@ export default function VenueSchedulePage() {
             <Link href="/owner/dashboard" className="text-teal-600 hover:underline">Back to Dashboard</Link>
           </div>
 
-          {/* Date Selector */}
           <div className="bg-white p-4 rounded-lg shadow mb-6 flex items-center space-x-4">
             <label className="font-semibold text-gray-700">Select Date:</label>
             <input 
@@ -87,7 +144,6 @@ export default function VenueSchedulePage() {
             />
           </div>
 
-          {/* Visual Grid */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="grid grid-cols-1 divide-y divide-gray-200">
               {timeSlots.map(hour => {
@@ -96,23 +152,23 @@ export default function VenueSchedulePage() {
 
                 return (
                   <div key={hour} className="flex h-16 hover:bg-gray-50 transition-colors">
-                    {/* Time Column */}
                     <div className="w-24 flex-shrink-0 border-r border-gray-200 flex items-center justify-center text-sm font-medium text-gray-500">
                       {timeLabel}
                     </div>
-                    
-                    {/* Slot Column */}
                     <div className="flex-grow p-2">
                       {booking ? (
                         <button 
                           onClick={() => setSelectedBooking(booking)}
-                          className="w-full h-full bg-green-100 border border-green-300 rounded-md flex items-center px-4 text-left hover:bg-green-200 transition-colors"
+                          className={`w-full h-full border rounded-md flex items-center px-4 text-left transition-colors ${getStatusBadgeColor(booking.status)}`}
                         >
-                          <div>
-                            <p className="font-bold text-green-800 text-sm">
-                              {booking.user_first_name} {booking.user_last_name}
-                            </p>
-                            <p className="text-xs text-green-700">Booking ID: #{booking.booking_id}</p>
+                          <div className="flex justify-between w-full">
+                             <div>
+                                <p className="font-bold text-sm">
+                                {booking.user_first_name} {booking.user_last_name}
+                                </p>
+                                <p className="text-xs opacity-75">#{booking.booking_id}</p>
+                             </div>
+                             <span className="uppercase text-xs font-bold self-center">{booking.status}</span>
                           </div>
                         </button>
                       ) : (
@@ -127,9 +183,9 @@ export default function VenueSchedulePage() {
             </div>
           </div>
 
-          {/* --- VERIFICATION MODAL --- */}
+          {/* --- MANAGEMENT MODAL --- */}
           {selectedBooking && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full relative">
                 <button 
                   onClick={() => setSelectedBooking(null)}
@@ -138,19 +194,27 @@ export default function VenueSchedulePage() {
                   &times;
                 </button>
                 
-                <h2 className="text-2xl font-bold text-black mb-2">Verify Player</h2>
+                <h2 className="text-2xl font-bold text-black mb-2">Manage Booking</h2>
                 <div className="w-full h-1 bg-gray-200 mb-6"></div>
 
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase">Player Name</p>
-                    <p className="text-xl font-bold text-teal-700">
-                      {selectedBooking.user_first_name} {selectedBooking.user_last_name}
-                    </p>
+                  <div className="flex justify-between">
+                     <div>
+                        <p className="text-xs text-gray-500 uppercase">Player</p>
+                        <p className="text-xl font-bold text-teal-700">
+                        {selectedBooking.user_first_name} {selectedBooking.user_last_name}
+                        </p>
+                     </div>
+                     <div className="text-right">
+                        <p className="text-xs text-gray-500 uppercase">Status</p>
+                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${getStatusBadgeColor(selectedBooking.status)}`}>
+                            {selectedBooking.status}
+                        </span>
+                     </div>
                   </div>
                   
                   <div>
-                    <p className="text-xs text-gray-500 uppercase">Phone Number</p>
+                    <p className="text-xs text-gray-500 uppercase">Phone</p>
                     <p className="text-lg font-semibold text-black">
                       {selectedBooking.user_phone || "N/A"}
                     </p>
@@ -158,23 +222,39 @@ export default function VenueSchedulePage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                       <p className="text-xs text-gray-500 uppercase">Booking ID</p>
+                       <p className="text-xs text-gray-500 uppercase">ID</p>
                        <p className="font-mono text-black">#{selectedBooking.booking_id}</p>
                     </div>
                     <div>
-                       <p className="text-xs text-gray-500 uppercase">Amount Paid</p>
+                       <p className="text-xs text-gray-500 uppercase">Price</p>
                        <p className="font-mono text-green-600 font-bold">₹{selectedBooking.total_price}</p>
                     </div>
                   </div>
                   
-                  <div className="pt-4">
-                    <button 
-                      onClick={() => setSelectedBooking(null)}
-                      className="w-full py-3 bg-teal-600 text-white rounded-lg font-bold hover:bg-teal-700"
-                    >
-                      Verified / Check In
-                    </button>
-                  </div>
+                  {/* --- ACTION BUTTONS --- */}
+                  {selectedBooking.status === 'confirmed' && (
+                      <div className="pt-6 grid grid-cols-2 gap-3">
+                        <button 
+                        onClick={() => handleStatusUpdate('present')}
+                        className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-md"
+                        >
+                        ✅ Mark Present
+                        </button>
+                        <button 
+                        onClick={() => handleStatusUpdate('absent')}
+                        className="w-full py-3 bg-orange-500 text-white rounded-lg font-bold hover:bg-orange-600 shadow-md"
+                        >
+                        🚫 Mark Absent
+                        </button>
+                      </div>
+                  )}
+                  
+                  {(selectedBooking.status === 'present' || selectedBooking.status === 'absent') && (
+                      <div className="pt-4 text-center text-gray-500 text-sm italic">
+                          This booking has been processed.
+                      </div>
+                  )}
+
                 </div>
               </div>
             </div>

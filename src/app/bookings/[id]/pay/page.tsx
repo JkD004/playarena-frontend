@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import toast from 'react-hot-toast';
 
 export default function PaymentPage() {
   const params = useParams();
@@ -28,14 +29,14 @@ export default function PaymentPage() {
       });
 
       if (res.ok) {
-        alert("Payment Successful! Booking Confirmed.");
+        toast.success("Payment Successful! Booking Confirmed.");
         router.push('/bookings/upcoming');
       } else {
-        alert("Payment failed. Please try again.");
+        toast.success("Payment failed. Please try again.");
       }
     } catch (err) {
       console.error(err);
-      alert("Error processing payment");
+      toast.success("Error processing payment");
     } finally {
       setIsProcessing(false);
     }

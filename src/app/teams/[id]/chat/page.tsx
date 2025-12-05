@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { useParams } from 'next/navigation';
 import { Send } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode'; // Import jwt-decode
+import toast from 'react-hot-toast';
 
 interface ChatMessage {
   id: number;
@@ -90,7 +91,7 @@ export default function TeamChatPage() {
       setNewMessage('');
       fetchMessages(); // Refresh instantly
     } catch (err) {
-      alert('Failed to send');
+      toast.success('Failed to send');
     }
   };
 
