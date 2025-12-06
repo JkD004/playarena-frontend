@@ -7,6 +7,8 @@ import { AuthProvider } from '@/context/AuthContext'; // 1. Import AuthProvider
 import PageTransition from '@/components/PageTransition';
 import { Toaster } from 'react-hot-toast';
 import { Analytics } from "@vercel/analytics/next"
+
+import { SpeedInsights } from "@vercel/speed-insights/next"
 // Font setup
 const inter = Inter({ subsets: ['latin'] });
 
@@ -32,6 +34,7 @@ export default function RootLayout({
           </main>
           <Toaster position="top-center" /> {/* Add this line */}
           <Analytics />
+          <SpeedInsights />
         </AuthProvider>
       </body>
     </html>
