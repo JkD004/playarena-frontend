@@ -37,7 +37,7 @@ export default function ContactPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Call Us</h3>
             <p className="text-gray-500 text-sm mb-4">Mon-Fri from 8am to 5pm</p>
             <a href="tel:+916364573073" className="text-xl font-bold text-teal-700 hover:underline">
-              +91 63645 73073
+              +91 6362630705
             </a>
           </div>
 

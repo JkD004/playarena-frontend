@@ -1,9 +1,11 @@
+// src/app/admin/terms/page.tsx
 "use client";
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
+import { ArrowLeft, Save, FileText } from 'lucide-react';
 
 export default function ManageTermsPage() {
   const [content, setContent] = useState('');
@@ -54,40 +56,57 @@ export default function ManageTermsPage() {
 
   return (
     <ProtectedRoute allowedRoles={['admin']}>
-      <div className="min-h-screen bg-gray-100 pt-20">
-        <div className="max-w-4xl mx-auto p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-black">Manage Terms</h1>
-            <Link href="/admin/dashboard" className="text-teal-600 hover:underline">
-              Back to Dashboard
-            </Link>
+      <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto">
+          
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <Link href="/admin/dashboard" className="inline-flex items-center text-sm text-gray-500 hover:text-teal-600 mb-2 transition-colors">
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back to Dashboard
+              </Link>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <FileText className="w-8 h-8 text-teal-600" />
+                Manage Terms
+              </h1>
+              <p className="text-gray-500 mt-1">Update the Terms & Conditions displayed to users.</p>
+            </div>
+            
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400 transition-colors shadow-sm"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Edit Terms & Conditions Content
-            </label>
+          {/* Editor Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Content
+              </label>
+              <p className="text-xs text-gray-500">
+                Tip: Press <strong>Enter</strong> to create new lines. They will appear as paragraphs on the public page.
+              </p>
+            </div>
             
             {isLoading ? (
-              <p>Loading...</p>
+              <div className="h-96 flex items-center justify-center text-gray-500">
+                Loading content...
+              </div>
             ) : (
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                className="w-full h-96 p-4 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 text-black font-mono text-sm"
+                className="w-full h-[600px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-800 font-mono text-sm leading-relaxed resize-none"
+                placeholder="Enter your terms and conditions here..."
               />
             )}
-
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="px-6 py-3 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 disabled:bg-gray-400"
-              >
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
           </div>
+
         </div>
       </div>
     </ProtectedRoute>

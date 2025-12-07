@@ -10,6 +10,8 @@ interface Booking {
   id: number;
   user_id: number;
   venue_id: number;
+  venue_name: string;
+  sport_category: string;
   start_time: string;
   end_time: string;
   total_price: number;
@@ -22,34 +24,29 @@ export default function PastBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { token } = useAuth(); // Get the token for the API call
+  const { token } = useAuth();
 
   useEffect(() => {
-    if (!token) return; // Wait for the token
+    if (!token) return;
 
     const fetchBookings = async () => {
       setIsLoading(true);
       setError(null);
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/bookings/mine`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: { 'Authorization': `Bearer ${token}` },
         });
 
-        if (!res.ok) {
-          throw new Error('Failed to fetch your bookings');
-        }
+        if (!res.ok) throw new Error('Failed to fetch your bookings');
 
         const allBookings: Booking[] = await res.json();
 
-        // --- Filter for Past Bookings ---
-        const pastBookings = allBookings.filter(b => 
+        // Filter for PAST and CONFIRMED bookings
+        const past = allBookings.filter(b => 
           new Date(b.end_time) < new Date() && b.status === 'confirmed'
         );
-        // ---------------------------------
 
-        setBookings(pastBookings);
+        setBookings(past);
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -61,8 +58,7 @@ export default function PastBookingsPage() {
     fetchBookings();
   }, [token]);
 
-  return (
-    // Protect this page so only logged-in users can see it
+ return (
     <ProtectedRoute allowedRoles={['player', 'owner', 'admin']}>
       <div className="min-h-screen bg-gray-100 pt-20">
         <div className="max-w-4xl mx-auto p-8">
@@ -79,24 +75,27 @@ export default function PastBookingsPage() {
                 <p className="text-lg text-gray-700">You have no past bookings.</p>
               ) : (
                 bookings.map((booking) => (
-                  <div key={booking.id} className="bg-white rounded-lg shadow-md p-6 opacity-75">
-                    {/* TODO: Fetch and show venue name instead of ID */}
-                    <h2 className="text-2xl font-semibold text-black mb-2">
-                      Booking for Venue ID: {booking.venue_id}
-                    </h2>
-                    <p className="text-gray-800">
-                      <strong>Date:</strong> {new Date(booking.start_time).toLocaleDateString()}
-                    </p>
-                    <p className="text-gray-800">
-                      <strong>Time:</strong> {new Date(booking.start_time).toLocaleTimeString()} - {new Date(booking.end_time).toLocaleTimeString()}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Status:</strong> <span className="capitalize font-medium text-gray-500">{booking.status}</span>
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Price:</strong> ₹{booking.total_price.toFixed(2)}
-                    </p>
-                    {/* You could add a "Review Venue" button here */}
+                  <div key={booking.id} className="bg-white rounded-lg shadow-md p-6 opacity-80 hover:opacity-100 transition-opacity">
+                    <div>
+                      {/* --- UPDATED DISPLAY --- */}
+                      <h2 className="text-2xl font-semibold text-black mb-1">
+                        {booking.sport_category} at {booking.venue_name}
+                      </h2>
+                      {/* ----------------------- */}
+                      
+                      <p className="text-gray-600">
+                        {new Date(booking.start_time).toLocaleDateString()} | {new Date(booking.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </p>
+                      
+                      <div className="mt-2 flex justify-between items-center">
+                        <p className="text-gray-600">
+                          <strong>Status:</strong> <span className="capitalize font-medium text-gray-500">{booking.status}</span>
+                        </p>
+                        <p className="text-xl font-bold text-gray-800">
+                          ₹{booking.total_price.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ))
               )}

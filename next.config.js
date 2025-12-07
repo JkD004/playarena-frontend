@@ -1,13 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enables the output of a single standalone folder for Docker deployment
-  output: "standalone",
-  
-  // Disable TypeScript check for production build in case of environment issues
-  // (Optional, but often helpful for Docker builds)
-  typescript: {
-    ignoreBuildErrors: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '**',
+      },
+    ],
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

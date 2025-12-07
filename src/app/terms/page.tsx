@@ -1,3 +1,4 @@
+// src/app/terms/page.tsx
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -34,13 +35,12 @@ export default function TermsPage() {
         {isLoading ? (
           <p className="text-gray-500">Loading terms...</p>
         ) : (
-          <div className="prose max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
+          <div className="text-gray-700 whitespace-pre-line leading-relaxed text-lg">
             {content}
           </div>
         )}
 
         <div className="mt-8 pt-6 border-t border-gray-200">
-          {/* The Back Button */}
           <button 
             onClick={() => router.back()} 
             className="flex items-center px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors"
