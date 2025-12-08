@@ -16,15 +16,15 @@ export default function DevelopersPage() {
       image: "/images/team/member2.jpg" 
     },
     { 
-      name: "Teammate 3", 
-      role: "Frontend Engineer", 
+      name: "Khushi Gadataranavar", 
+      role: "Full Stack Developer", 
       bio: "Designed the Next.js UI and user experience.",
       image: "/images/team/member3.jpg" 
     },
     { 
-      name: "Teammate 4", 
-      role: "QA & Product", 
-      bio: "Ensured quality and defined product requirements.",
+      name: "Monishya Kamble", 
+      role: "Devops Engineer", 
+      bio: "Managed deployment pipelines on Render and Vercel.",
       image: "/images/team/member4.jpg" 
     },
   ];
