@@ -1,46 +1,36 @@
-// src/app/support/report/page.tsx
 "use client";
 import { useState } from 'react';
 
 export default function ReportPage() {
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-100 pt-20">
-      <div className="max-w-xl mx-auto p-8">
-        <h1 className="text-3xl font-bold text-red-600 mb-6">Report an Issue</h1>
-        
+    <div className="min-h-screen bg-gray-100 pt-24 pb-12 px-4">
+      <div className="max-w-xl mx-auto bg-white rounded-xl shadow-md p-8 border-t-4 border-red-500">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Report an Issue</h1>
+        <p className="text-gray-600 mb-8">Found a bug or policy violation? Let us know.</p>
+
         {submitted ? (
-          <div className="bg-gray-200 text-gray-800 p-6 rounded-lg text-center">
-            <p>Your report has been submitted to our trust & safety team.</p>
+          <div className="bg-gray-100 p-6 rounded-lg text-center">
+            <p className="text-gray-800 font-medium">Thank you. Our team will review your report shortly.</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md space-y-4 border-t-4 border-red-500">
-            <p className="text-sm text-gray-600 mb-4">Please provide details about the violation, bug, or issue you encountered.</p>
-            
+          <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Issue Type</label>
-              <select className="w-full p-2 border rounded text-black">
-                <option>Technical Bug</option>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Issue Type</label>
+              <select className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-800">
+                <option>Technical Bug / Error</option>
                 <option>Venue Misrepresentation</option>
                 <option>User Misconduct</option>
                 <option>Payment Issue</option>
+                <option>Other</option>
               </select>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea className="w-full p-2 border rounded text-black h-32" required></textarea>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+              <textarea className="w-full p-3 border border-gray-300 rounded-lg h-32 focus:ring-2 focus:ring-red-500 focus:border-transparent" placeholder="Please provide details..." required></textarea>
             </div>
-
-            <button type="submit" className="w-full py-3 bg-red-600 text-white rounded-md font-bold hover:bg-red-700">
-              Submit Report
-            </button>
+            <button type="submit" className="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors">Submit Report</button>
           </form>
         )}
       </div>

@@ -3,9 +3,9 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
-import { 
-  User, Bell, ChevronDown, LogOut, 
-  Menu, X, Shield, Briefcase 
+import {
+  User, Bell, ChevronDown, LogOut,
+  Menu, X, Shield, Briefcase, ScanLine
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -194,10 +194,10 @@ const Header = () => {
               button={<><span>My Bookings</span><ChevronDown className="h-4 w-4" /></>}
               buttonClassName="hover:text-white"
             >
-              <DropdownLink href="/bookings/upcoming">Upcoming</DropdownLink>
-              <DropdownLink href="/bookings/pending">Pending</DropdownLink>
-              <DropdownLink href="/bookings/past">History</DropdownLink>
-              <DropdownLink href="/bookings/canceled">Canceled</DropdownLink>
+              <DropdownLink href="/bookings/upcoming">Upcoming Bookings</DropdownLink>
+              <DropdownLink href="/bookings/pending">Pending Bookings</DropdownLink>
+              <DropdownLink href="/bookings/past">Past Bookings</DropdownLink>
+              <DropdownLink href="/bookings/canceled">Canceled Bookings</DropdownLink>
             </DropdownMenu>
           )}
 
@@ -205,12 +205,12 @@ const Header = () => {
           {/* Involved Teams (Visible to 'player' and 'admin') */}
           {isLoggedIn && (role === 'player' || role === 'admin') && (
             <DropdownMenu button={<><span>Involved Teams</span><ChevronDown className="h-4 w-4" /></>} buttonClassName="hover:text-white">
-               <DropdownLink href="/teams">Existing Teams</DropdownLink>
-               <DropdownLink href="/teams/new">Create a New Team</DropdownLink>
-               
-               {/* FIX: Point these to the main list page so user can choose which team */}
-               <DropdownLink href="/teams">Manage Teams</DropdownLink>
-               <DropdownLink href="/teams">Team Chats</DropdownLink>
+              <DropdownLink href="/teams">Existing Teams</DropdownLink>
+              <DropdownLink href="/teams/new">Create a New Team</DropdownLink>
+
+              {/* FIX: Point these to the main list page so user can choose which team */}
+              <DropdownLink href="/teams">Manage Teams</DropdownLink>
+              <DropdownLink href="/teams">Team Chats</DropdownLink>
             </DropdownMenu>
           )}
 
@@ -251,7 +251,14 @@ const Header = () => {
         {/* ============================================================
             RIGHT ICONS
         ============================================================ */}
-        <div className="flex items-center space-x-4 sm:space-x-6">
+        <div className="flex-shrink-0 flex items-center space-x-4 sm:space-x-6">
+
+          {/* NEW: Scanner Icon for Owners/Admins */}
+          {isLoggedIn && (role === 'owner' || role === 'admin') && (
+            <Link href="/owner/scan" className="hover:text-teal-400 transition-colors" aria-label="Scan Ticket">
+              <ScanLine className="h-6 w-6" />
+            </Link>
+          )}
 
           {/* Notifications */}
           {isLoggedIn && (

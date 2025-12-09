@@ -163,8 +163,17 @@ export default function VenueDetailPage() {
   };
 
   const handleBooking = async () => {
-    if (!isLoggedIn || !token) {
-      router.push(`/login?redirect=/venues/${id}`);
+    // --- FIX: Safety Check ---
+    if (!venue) return;
+    // -------------------------
+
+    // 1. Check Login
+    if (!token) {
+      alert("Please login to book a slot.");
+
+      // Now safe to use venue.id because of the check above
+      const currentPath = `/venues/${venue.id}`;
+      router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
     if (!selectedTime) return;

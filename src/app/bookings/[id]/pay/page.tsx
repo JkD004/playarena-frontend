@@ -5,7 +5,13 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import toast from 'react-hot-toast';
+
+// Use a global variable for the Razorpay instance
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function PaymentPage() {
   const params = useParams();
@@ -15,28 +21,86 @@ export default function PaymentPage() {
   
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handlePayment = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Helper to load the script dynamically
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handlePayment = async () => {
     setIsProcessing(true);
 
-    // Simulate network delay for realism
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/bookings/${bookingId}/pay`, {
+      // 1. Load the script
+      const res = await loadRazorpayScript();
+      if (!res) {
+        alert('Razorpay SDK failed to load. Are you online?');
+        setIsProcessing(false);
+        return;
+      }
+
+      // 2. Create Order on Backend
+      const orderRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/payment/create-order/${bookingId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      if (res.ok) {
-        toast.success("Payment Successful! Booking Confirmed.");
-        router.push('/bookings/upcoming');
-      } else {
-        toast.success("Payment failed. Please try again.");
-      }
+      if (!orderRes.ok) throw new Error("Failed to create order");
+      const orderData = await orderRes.json();
+
+      // 3. Configure Options
+      const options = {
+        key: orderData.key_id, // Key ID from backend
+        amount: orderData.amount * 100, // Amount in paise
+        currency: 'INR',
+        name: 'SportGrid',
+        description: 'Turf Booking Transaction',
+        order_id: orderData.order_id, // Order ID from backend
+        handler: async function (response: any) {
+          // 4. Verify Payment on Backend
+          const verifyRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/payment/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              booking_id: parseInt(bookingId as string),
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            }),
+          });
+
+          if (verifyRes.ok) {
+            alert('Payment Successful! Booking Confirmed.');
+            router.push('/bookings/upcoming');
+          } else {
+            alert('Payment verification failed.');
+          }
+        },
+        prefill: {
+          name: "Player Name", // Ideally fetch from profile
+          email: "player@example.com",
+          contact: "9999999999",
+        },
+        theme: {
+          color: "#0D9488", // Teal color to match your theme
+        },
+      };
+
+      // 5. Open Checkout
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+
     } catch (err) {
       console.error(err);
-      toast.success("Error processing payment");
+      alert("Error initiating payment");
     } finally {
       setIsProcessing(false);
     }
@@ -45,37 +109,23 @@ export default function PaymentPage() {
   return (
     <ProtectedRoute allowedRoles={['player', 'owner', 'admin']}>
       <div className="min-h-screen bg-gray-100 pt-20 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-          <h1 className="text-2xl font-bold text-black mb-6 text-center">Complete Payment</h1>
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+          <h1 className="text-2xl font-bold text-black mb-4">Complete Payment</h1>
+          <p className="text-gray-600 mb-8">
+            You are about to pay for Booking <strong>#{bookingId}</strong> via Razorpay.
+          </p>
+
+          <button 
+            onClick={handlePayment}
+            disabled={isProcessing}
+            className="w-full py-3 bg-teal-600 text-white rounded-md font-bold hover:bg-teal-700 transition-colors disabled:bg-gray-400"
+          >
+            {isProcessing ? 'Processing...' : 'Pay with Razorpay'}
+          </button>
           
-          <div className="bg-blue-50 p-4 rounded-md mb-6 text-blue-800 text-sm">
-             Booking ID: <strong>#{bookingId}</strong>
-          </div>
-
-          <form onSubmit={handlePayment} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
-              <input type="text" placeholder="0000 0000 0000 0000" className="w-full p-2 border rounded text-black" required />
-            </div>
-            <div className="flex space-x-4">
-              <div className="w-1/2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expiry</label>
-                <input type="text" placeholder="MM/YY" className="w-full p-2 border rounded text-black" required />
-              </div>
-              <div className="w-1/2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">CVV</label>
-                <input type="text" placeholder="123" className="w-full p-2 border rounded text-black" required />
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={isProcessing}
-              className="w-full py-3 bg-green-600 text-white rounded-md font-bold hover:bg-green-700 transition-colors disabled:bg-gray-400"
-            >
-              {isProcessing ? 'Processing...' : 'Pay Now'}
-            </button>
-          </form>
+          <p className="text-xs text-gray-400 mt-4">
+            Secure payments powered by Razorpay.
+          </p>
         </div>
       </div>
     </ProtectedRoute>

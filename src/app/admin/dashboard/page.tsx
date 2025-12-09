@@ -4,12 +4,23 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import PendingVenues from '@/components/admin/PendingVenues';
 import Link from 'next/link';
-import { Award, Activity, Target, Droplets } from 'lucide-react';
+import {
+  Shield, Users, TrendingUp, CheckCircle, XCircle,
+  FileText, Calendar, DollarSign, Settings, RefreshCcw, MapPin
+} from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-// Interface for Venue Stats
-interface VenueStats {
+interface GlobalStats {
+  total_bookings: number;
+  confirmed_bookings: number;
+  present_bookings: number;
+  canceled_bookings: number;
+  refunded_bookings: number;
+  total_revenue: number;
+}
+
+interface GroupedStat {
   venue_id: number;
   venue_name: string;
   sport_category: string;
@@ -17,154 +28,234 @@ interface VenueStats {
   total_revenue: number;
 }
 
-// Grouped Data Structure
-type GroupedStats = Record<string, VenueStats[]>;
-
 export default function AdminDashboardPage() {
-  const [groupedStats, setGroupedStats] = useState<GroupedStats>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
+  const [groupedStats, setGroupedStats] = useState<GroupedStat[]>([]);
   const { token } = useAuth();
 
   useEffect(() => {
     if (!token) return;
 
-    const fetchStats = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/stats/by-venue`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
+    // 1. Fetch Global Summary (God Mode)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/stats/global`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setGlobalStats(data))
+      .catch(err => console.error(err));
 
-        if (!res.ok) throw new Error('Failed to fetch stats');
-        
-        const data: VenueStats[] = await res.json();
+    // 2. Fetch Grouped Data (For Graphs & Table)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/admin/stats/grouped`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        // Sort by revenue (highest first) for the table
+        const sorted = (data || []).sort((a: GroupedStat, b: GroupedStat) => b.total_revenue - a.total_revenue);
+        setGroupedStats(sorted);
+      })
+      .catch(err => console.error(err));
 
-        // Group by sport_category
-        const groups = data.reduce((acc, venue) => {
-          const category = venue.sport_category;
-          if (!acc[category]) {
-            acc[category] = [];
-          }
-          acc[category].push(venue);
-          return acc;
-        }, {} as GroupedStats);
-
-        setGroupedStats(groups);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchStats();
   }, [token]);
 
-  // Helper to get icon for sport
-  const getSportIcon = (category: string) => {
-    const lowerCat = category.toLowerCase();
-    if (lowerCat.includes('football') || lowerCat.includes('turf')) return <Award className="w-6 h-6 text-teal-600" />;
-    if (lowerCat.includes('swimming')) return <Droplets className="w-6 h-6 text-blue-500" />;
-    if (lowerCat.includes('badminton')) return <Activity className="w-6 h-6 text-orange-500" />;
-    if (lowerCat.includes('snooker')) return <Target className="w-6 h-6 text-red-500" />;
-    return <Award className="w-6 h-6 text-gray-500" />;
-  };
+  // Aggregate Data for "Revenue by Sport" Chart
+  const sportData = groupedStats.reduce((acc: any[], curr) => {
+    const existing = acc.find(item => item.name === curr.sport_category);
+    if (existing) {
+      existing.revenue += curr.total_revenue;
+    } else {
+      acc.push({ name: curr.sport_category, revenue: curr.total_revenue });
+    }
+    return acc;
+  }, []);
+
+  const CHART_COLORS = ['#0d9488', '#0f766e', '#115e59', '#134e4a'];
 
   return (
     <ProtectedRoute allowedRoles={['admin']}>
-      <div className="min-h-screen bg-gray-100 pt-20 pb-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-center mb-10 border-b border-gray-200 pb-6">
-            <div>
-                <h1 className="text-4xl font-bold text-gray-900">Admin Dashboard</h1>
-                <p className="text-gray-500 mt-2">Overview of platform performance and approvals.</p>
-            </div>
-            
-            {/* --- ACTION BUTTONS (Updated) --- */}
-            <div className="mt-4 md:mt-0 flex flex-wrap gap-3">
-                 <Link 
-                  href="/admin/users"
-                  className="py-2.5 px-5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-medium shadow-sm transition-colors"
-                >
-                  Manage Users
-                </Link>
-                {/* ADDED: Edit Terms Button */}
-                <Link 
-                  href="/admin/terms"
-                  className="py-2.5 px-5 bg-gray-700 hover:bg-gray-800 text-white rounded-lg font-medium shadow-sm transition-colors"
-                >
-                  Edit Terms
-                </Link>
-                <Link 
-                  href="/admin/bookings"
-                  className="py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm transition-colors"
-                >
-                  View All Bookings
-                </Link>
-            </div>
-            {/* -------------------------------- */}
+      <div className="min-h-screen bg-gray-50 pt-20 pb-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
 
+          {/* HEADER */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-extrabold text-gray-900 flex items-center">
+              <Shield className="w-8 h-8 mr-3 text-teal-600" /> Admin Command Center
+            </h1>
+            <p className="text-gray-500 mt-2 text-lg">Platform-wide monitoring and controls.</p>
           </div>
 
-          {/* --- STATISTICS SECTION --- */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Revenue by Sport</h2>
-            
-            {isLoading ? (
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 {[1,2,3].map(i => <div key={i} className="h-40 bg-gray-200 rounded-xl animate-pulse"></div>)}
-               </div>
-            ) : Object.keys(groupedStats).length === 0 ? (
-              <div className="bg-white p-8 rounded-xl shadow-sm text-center border border-gray-200">
-                <p className="text-gray-500">No venue data available yet.</p>
+          {/* 1. GOD MODE STATS GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Total Revenue */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 lg:col-span-2 flex items-center justify-between">
+              <div>
+                <h3 className="text-gray-500 text-sm font-bold uppercase mb-1">Total Platform Revenue</h3>
+                <p className="text-4xl font-extrabold text-teal-600">₹{(globalStats?.total_revenue || 0).toLocaleString()}</p>
               </div>
-            ) : (
-              <div className="space-y-10">
-                {Object.entries(groupedStats).map(([category, venues]) => (
-                  <div key={category} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    
-                    {/* Category Header */}
-                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-3">
-                       {getSportIcon(category)}
-                       <h3 className="text-xl font-bold text-gray-800 capitalize">{category}</h3>
-                       <span className="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full font-medium ml-auto">
-                         {venues.length} Venues
-                       </span>
-                    </div>
-                    
-                    {/* Venues Grid */}
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {venues.map((venue) => (
-                        <div key={venue.venue_id} className="bg-white border border-gray-100 rounded-lg p-5 hover:shadow-md transition-shadow">
-                          <h4 className="text-lg font-bold text-gray-900 mb-4 truncate" title={venue.venue_name}>
-                            {venue.venue_name}
-                          </h4>
-                          
-                          <div className="flex justify-between items-end">
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Revenue</p>
-                              <p className="text-2xl font-bold text-teal-600">₹{venue.total_revenue.toLocaleString()}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide">Bookings</p>
-                              <p className="text-lg font-medium text-gray-900">{venue.total_bookings}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              <div className="p-4 bg-teal-50 rounded-full">
+                <DollarSign className="w-8 h-8 text-teal-600" />
+              </div>
+            </div>
+
+            {/* Status Cards */}
+            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <h3 className="text-gray-500 text-xs font-bold uppercase">Confirmed</h3>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{globalStats?.confirmed_bookings || 0}</p>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-4 h-4 text-blue-600" />
+                <h3 className="text-gray-500 text-xs font-bold uppercase">Present</h3>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{globalStats?.present_bookings || 0}</p>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <XCircle className="w-4 h-4 text-red-600" />
+                <h3 className="text-gray-500 text-xs font-bold uppercase">Canceled</h3>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{globalStats?.canceled_bookings || 0}</p>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <RefreshCcw className="w-4 h-4 text-orange-600" />
+                <h3 className="text-gray-500 text-xs font-bold uppercase">Refunded</h3>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{globalStats?.refunded_bookings || 0}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+
+            {/* 2. VENUE PERFORMANCE TABLE (Detailed List) */}
+            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                  <MapPin className="w-5 h-5 mr-2 text-teal-600" /> Top Performing Venues
+                </h3>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
+                      <th className="p-4">Rank</th>
+                      <th className="p-4">Venue Name</th>
+                      <th className="p-4">Category</th>
+                      <th className="p-4 text-center">Bookings</th>
+                      <th className="p-4 text-right">Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {groupedStats.length === 0 ? (
+                      <tr><td colSpan={5} className="p-6 text-center text-gray-500">No data available.</td></tr>
+                    ) : (
+                      groupedStats.map((venue, index) => (
+                        <tr key={venue.venue_id} className="hover:bg-gray-50 transition-colors">
+                          <td className="p-4 text-gray-400 font-medium">#{index + 1}</td>
+                          <td className="p-4 font-semibold text-gray-900">{venue.venue_name}</td>
+                          <td className="p-4">
+                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded font-medium uppercase">
+                              {venue.sport_category}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center font-medium text-gray-700">{venue.total_bookings}</td>
+                          <td className="p-4 text-right font-bold text-teal-700">₹{venue.total_revenue.toLocaleString()}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 3. MANAGEMENT TOOLS */}
+            <div className="space-y-4">
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h3 className="text-sm font-bold text-gray-400 uppercase mb-4 tracking-wider">Management Tools</h3>
+
+                <Link href="/admin/users" className="flex items-center p-4 mb-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-teal-50 hover:border-teal-200 transition-all group">
+                  <div className="p-2 bg-white rounded-md shadow-sm group-hover:bg-teal-100 transition-colors">
+                    <Users className="w-5 h-5 text-blue-600 group-hover:text-teal-700" />
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <div className="ml-3">
+                    <h4 className="font-bold text-gray-900">Manage Users</h4>
+                    <p className="text-xs text-gray-500">View and ban users</p>
+                  </div>
+                </Link>
 
-          {/* --- PENDING APPROVALS SECTION --- */}
-          <div>
-             <h2 className="text-2xl font-bold text-gray-900 mb-6">Pending Actions</h2>
-             <PendingVenues />
+                <Link href="/admin/venues/manage" className="flex items-center p-4 mb-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-teal-50 hover:border-teal-200 transition-all group">
+                  <div className="p-2 bg-white rounded-md shadow-sm group-hover:bg-teal-100 transition-colors">
+                    <MapPin className="w-5 h-5 text-teal-600 group-hover:text-teal-700" />
+                  </div>
+                  <div className="ml-3">
+                    <h4 className="font-bold text-gray-900">Manage Venues</h4>
+                    <p className="text-xs text-gray-500">View revenue, owners & bookings</p>
+                  </div>
+                </Link>
+
+                <Link href="/admin/bookings" className="flex items-center p-4 mb-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-teal-50 hover:border-teal-200 transition-all group">
+                  <div className="p-2 bg-white rounded-md shadow-sm group-hover:bg-teal-100 transition-colors">
+                    <Calendar className="w-5 h-5 text-purple-600 group-hover:text-teal-700" />
+                  </div>
+                  <div className="ml-3">
+                    <h4 className="font-bold text-gray-900">All Bookings</h4>
+                    <p className="text-xs text-gray-500">Monitor transactions</p>
+                  </div>
+                </Link>
+
+                <Link href="/admin/terms" className="flex items-center p-4 mb-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-teal-50 hover:border-teal-200 transition-all group">
+                  <div className="p-2 bg-white rounded-md shadow-sm group-hover:bg-teal-100 transition-colors">
+                    <FileText className="w-5 h-5 text-orange-600 group-hover:text-teal-700" />
+                  </div>
+                  <div className="ml-3">
+                    <h4 className="font-bold text-gray-900">Edit Terms</h4>
+                    <p className="text-xs text-gray-500">Update policies</p>
+                  </div>
+                </Link>
+
+                <Link href="/admin/venues" className="flex items-center p-4 bg-gray-50 border border-gray-200 rounded-lg hover:bg-teal-50 hover:border-teal-200 transition-all group">
+                  <div className="p-2 bg-white rounded-md shadow-sm group-hover:bg-teal-100 transition-colors">
+                    <Settings className="w-5 h-5 text-teal-600 group-hover:text-teal-700" />
+                  </div>
+                  <div className="ml-3">
+                    <h4 className="font-bold text-gray-900">Venue Approvals</h4>
+                    <p className="text-xs text-gray-500">Approve/Reject venues</p>
+                  </div>
+                </Link>
+              </div>
+
+              {/* 4. REVENUE CHART */}
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                  <TrendingUp className="w-5 h-5 mr-2 text-teal-600" /> Revenue by Sport
+                </h3>
+                <div className="h-48 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={sportData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                      <XAxis dataKey="name" stroke="#6b7280" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#6b7280" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val / 1000}k`} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', color: '#111827', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                        cursor={{ fill: '#f3f4f6' }}
+                      />
+                      <Bar dataKey="revenue" radius={[4, 4, 0, 0]} barSize={30}>
+                        {sportData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
           </div>
 
         </div>

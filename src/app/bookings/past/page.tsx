@@ -4,6 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import Link from 'next/link';
+import { CheckCircle, XCircle, AlertCircle, Clock, MapPin, UserCheck } from 'lucide-react';
 
 // Define the shape of a Booking
 interface Booking {
@@ -17,7 +19,6 @@ interface Booking {
   total_price: number;
   status: string;
   created_at: string;
-  // We'll add venue_name later if we join tables
 }
 
 export default function PastBookingsPage() {
@@ -41,10 +42,15 @@ export default function PastBookingsPage() {
 
         const allBookings: Booking[] = await res.json();
 
-        // Filter for PAST and CONFIRMED bookings
-        const past = allBookings.filter(b => 
-          new Date(b.end_time) < new Date() && b.status === 'confirmed'
-        );
+        // --- FILTER LOGIC ---
+        // 1. Get current time
+        const now = new Date();
+
+        // 2. Filter for bookings where the END TIME has passed
+        const past = allBookings.filter(b => new Date(b.end_time) < now);
+
+        // 3. Sort by most recent first
+        past.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
 
         setBookings(past);
 
@@ -58,42 +64,113 @@ export default function PastBookingsPage() {
     fetchBookings();
   }, [token]);
 
- return (
+  // Helper to render the correct UI based on status
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'present':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-green-100 text-green-700 border border-green-200">
+            <UserCheck className="w-4 h-4 mr-2" /> Completed
+          </span>
+        );
+      case 'confirmed':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-gray-100 text-gray-600 border border-gray-200">
+            <CheckCircle className="w-4 h-4 mr-2" /> Concluded
+          </span>
+        );
+      case 'canceled':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-red-100 text-red-700 border border-red-200">
+            <XCircle className="w-4 h-4 mr-2" /> Canceled
+          </span>
+        );
+      case 'pending':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">
+            <AlertCircle className="w-4 h-4 mr-2" /> Payment Failed
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-gray-100 text-gray-500">
+            {status}
+          </span>
+        );
+    }
+  };
+
+  return (
     <ProtectedRoute allowedRoles={['player', 'owner', 'admin']}>
-      <div className="min-h-screen bg-gray-100 pt-20">
-        <div className="max-w-4xl mx-auto p-8">
-          <h1 className="text-4xl font-bold text-black mb-6">
-            Past Bookings
-          </h1>
+      <div className="min-h-screen bg-gray-50 pt-20 pb-12">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          {isLoading && <p className="text-gray-700">Loading your bookings...</p>}
-          {error && <p className="text-red-500">Error: {error}</p>}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Past Bookings</h1>
+              <p className="text-gray-500 mt-1">History of your completed and canceled games.</p>
+            </div>
+          </div>
+          
+          {isLoading && (
+            <div className="space-y-4">
+               {[1,2,3].map(i => <div key={i} className="h-32 bg-gray-200 rounded-xl animate-pulse"></div>)}
+            </div>
+          )}
+          
+          {error && (
+            <div className="p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center">
+              <AlertCircle className="w-5 h-5 mr-2" /> {error}
+            </div>
+          )}
 
           {!isLoading && !error && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {bookings.length === 0 ? (
-                <p className="text-lg text-gray-700">You have no past bookings.</p>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Clock className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900">No past bookings</h3>
+                  <p className="text-gray-500 mt-1">You haven't completed any games yet.</p>
+                  <Link href="/venues" className="inline-block mt-4 text-teal-600 font-medium hover:underline">
+                    Find a venue
+                  </Link>
+                </div>
               ) : (
                 bookings.map((booking) => (
-                  <div key={booking.id} className="bg-white rounded-lg shadow-md p-6 opacity-80 hover:opacity-100 transition-opacity">
-                    <div>
-                      {/* --- UPDATED DISPLAY --- */}
-                      <h2 className="text-2xl font-semibold text-black mb-1">
-                        {booking.sport_category} at {booking.venue_name}
-                      </h2>
-                      {/* ----------------------- */}
-                      
-                      <p className="text-gray-600">
-                        {new Date(booking.start_time).toLocaleDateString()} | {new Date(booking.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </p>
-                      
-                      <div className="mt-2 flex justify-between items-center">
-                        <p className="text-gray-600">
-                          <strong>Status:</strong> <span className="capitalize font-medium text-gray-500">{booking.status}</span>
-                        </p>
-                        <p className="text-xl font-bold text-gray-800">
-                          ₹{booking.total_price.toFixed(2)}
-                        </p>
+                  <div key={booking.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <div className="p-6">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        
+                        {/* Left: Info */}
+                        <div className="flex-grow">
+                          <div className="flex items-center gap-2 mb-1">
+                             <span className="text-xs font-bold uppercase tracking-wider text-teal-600 bg-teal-50 px-2 py-0.5 rounded">
+                               {booking.sport_category}
+                             </span>
+                             <span className="text-xs text-gray-400">#{booking.id}</span>
+                          </div>
+                          
+                          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                             {booking.venue_name}
+                          </h3>
+                          
+                          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-600">
+                             <div className="flex items-center">
+                                <Clock className="w-4 h-4 mr-1.5 text-gray-400" />
+                                {new Date(booking.start_time).toLocaleDateString()} &bull; {new Date(booking.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                             </div>
+                             <div className="font-medium text-gray-900">
+                                ₹{booking.total_price.toFixed(2)}
+                             </div>
+                          </div>
+                        </div>
+
+                        {/* Right: Status Badge */}
+                        <div className="flex-shrink-0 flex items-center">
+                           {getStatusDisplay(booking.status)}
+                        </div>
                       </div>
                     </div>
                   </div>

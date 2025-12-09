@@ -2,10 +2,10 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // 1. Import the router
+import { useRouter } from 'next/navigation';
 
 export default function RegisterPage() {
-  const router = useRouter(); // 2. Initialize the router
+  const router = useRouter();
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -18,6 +18,7 @@ export default function RegisterPage() {
   });
 
   const [message, setMessage] = useState('');
+  const [marketingConsent, setMarketingConsent] = useState(false); // <-- Added state
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -37,17 +38,16 @@ export default function RegisterPage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formData), // (You didn't ask to send marketingConsent, so not adding it)
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        // 3. On success, redirect to login
         setMessage('Success! Redirecting to login...');
         setTimeout(() => {
           router.push('/login');
-        }, 2000); // Add a small delay so the user can see the message
+        }, 2000);
       } else {
         setMessage(`Error: ${data.error}`);
       }
@@ -65,8 +65,7 @@ export default function RegisterPage() {
         <h2 className="text-3xl font-bold text-center text-black">Create Account</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* ... all your form inputs (first_name, last_name, etc.) ... */}
-          {/* (No changes needed inside the <form> tags) */}
+
           <div className="flex space-x-4">
             <div className="w-1/2">
               <label htmlFor="first_name" className={labelStyle}>First Name</label>
@@ -74,7 +73,7 @@ export default function RegisterPage() {
             </div>
             <div className="w-1/2">
               <label htmlFor="last_name" className={labelStyle}>Last Name</label>
-              <input type="text" name="last_name" onChange={handleChange} className={inputStyle}  />
+              <input type="text" name="last_name" onChange={handleChange} className={inputStyle} />
             </div>
           </div>
           
@@ -82,22 +81,27 @@ export default function RegisterPage() {
             <label htmlFor="email" className={labelStyle}>Email</label>
             <input type="email" name="email" onChange={handleChange} className={inputStyle} required />
           </div>
+
           <div>
             <label htmlFor="phone" className={labelStyle}>Phone</label>
             <input type="tel" name="phone" onChange={handleChange} className={inputStyle} />
           </div>
+
           <div>
             <label htmlFor="dob" className={labelStyle}>Date of Birth</label>
             <input type="date" name="dob" onChange={handleChange} className={inputStyle} />
           </div>
+
           <div>
             <label htmlFor="address" className={labelStyle}>Address</label>
             <textarea name="address" onChange={handleChange} className={`${inputStyle} h-20`}></textarea>
           </div>
+
           <div>
             <label htmlFor="password" className={labelStyle}>Password</label>
             <input type="password" name="password" onChange={handleChange} className={inputStyle} required />
           </div>
+
           <div>
             <label htmlFor="confirm_password" className={labelStyle}>Confirm Password</label>
             <input type="text" name="confirm_password" onChange={handleChange} className={inputStyle} required />
@@ -108,6 +112,32 @@ export default function RegisterPage() {
               {message}
             </p>
           )}
+
+          {/* ----------------------------- */}
+          {/* Added Marketing + Privacy Section */}
+          {/* ----------------------------- */}
+
+          <div className="flex items-start space-x-2">
+            <input
+              type="checkbox"
+              id="marketing"
+              checked={marketingConsent}
+              onChange={(e) => setMarketingConsent(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+            />
+            <label htmlFor="marketing" className="text-sm text-gray-600">
+              I agree to receive promotional emails and offers (Optional).
+            </label>
+          </div>
+
+          <div className="text-xs text-gray-500 mb-4">
+            By registering, you agree to our{" "}
+            <Link href="/legal/privacy-policy" className="text-teal-600 underline">
+              Privacy Policy
+            </Link>.
+          </div>
+
+          {/* ----------------------------- */}
 
           <button type="submit" className="w-full py-3 px-4 bg-teal-600 hover:bg-teal-700 rounded-md text-white font-semibold">
             Register

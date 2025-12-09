@@ -4,14 +4,16 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import Link from 'next/link';
+import { XCircle, AlertCircle, Clock, RefreshCcw } from 'lucide-react';
 
-// Updated Interface
+// Define the shape of a Booking
 interface Booking {
   id: number;
   user_id: number;
   venue_id: number;
-  venue_name: string;      // <-- NEW
-  sport_category: string;  // <-- NEW
+  venue_name: string;
+  sport_category: string;
   start_time: string;
   end_time: string;
   total_price: number;
@@ -40,9 +42,15 @@ export default function CanceledBookingsPage() {
 
         const allBookings: Booking[] = await res.json();
 
-        // Filter for CANCELED bookings
-        const canceled = allBookings.filter(b => b.status === 'canceled');
-        setBookings(canceled);
+        // 1. Filter for CANCELED OR REFUNDED bookings
+        const canceledList = allBookings.filter(b => 
+            ['canceled', 'refunded'].includes(b.status)
+        );
+
+        // 2. Sort by most recent first
+        canceledList.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+
+        setBookings(canceledList);
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -54,42 +62,94 @@ export default function CanceledBookingsPage() {
     fetchBookings();
   }, [token]);
 
+  // Helper for Status Badge
+  const getStatusBadge = (status: string) => {
+    if (status === 'refunded') {
+        return (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-orange-100 text-orange-700 border border-orange-200">
+                <RefreshCcw className="w-4 h-4 mr-2" /> Refunded
+            </span>
+        );
+    }
+    // Default to Canceled
+    return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-red-100 text-red-700 border border-red-200">
+            <XCircle className="w-4 h-4 mr-2" /> Canceled
+        </span>
+    );
+  };
+
   return (
     <ProtectedRoute allowedRoles={['player', 'owner', 'admin']}>
-      <div className="min-h-screen bg-gray-100 pt-20">
-        <div className="max-w-4xl mx-auto p-8">
-          <h1 className="text-4xl font-bold text-black mb-6">
-            Canceled Bookings
-          </h1>
+      <div className="min-h-screen bg-gray-50 pt-20 pb-12">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          {isLoading && <p className="text-gray-700">Loading your bookings...</p>}
-          {error && <p className="text-red-500">Error: {error}</p>}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Canceled & Refunded</h1>
+              <p className="text-gray-500 mt-1">History of bookings that didn't go through.</p>
+            </div>
+          </div>
+          
+          {isLoading && (
+            <div className="space-y-4">
+               {[1,2,3].map(i => <div key={i} className="h-32 bg-gray-200 rounded-xl animate-pulse"></div>)}
+            </div>
+          )}
+          
+          {error && (
+            <div className="p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-center">
+              <AlertCircle className="w-5 h-5 mr-2" /> {error}
+            </div>
+          )}
 
           {!isLoading && !error && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {bookings.length === 0 ? (
-                <p className="text-lg text-gray-700">You have no canceled bookings.</p>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <XCircle className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900">No canceled bookings</h3>
+                  <p className="text-gray-500 mt-1">You haven't canceled any games yet.</p>
+                  <Link href="/venues" className="inline-block mt-4 text-teal-600 font-medium hover:underline">
+                    Find a venue
+                  </Link>
+                </div>
               ) : (
                 bookings.map((booking) => (
-                  <div key={booking.id} className="bg-white rounded-lg shadow-md p-6 opacity-60 hover:opacity-100 transition-opacity">
-                    <div>
-                      {/* --- UPDATED DISPLAY --- */}
-                      <h2 className="text-2xl font-semibold text-black mb-1">
-                        {booking.sport_category} at {booking.venue_name}
-                      </h2>
-                      {/* ----------------------- */}
+                  <div key={booking.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow opacity-90 hover:opacity-100">
+                    <div className="p-6">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        
+                        {/* Left: Info */}
+                        <div className="flex-grow">
+                          <div className="flex items-center gap-2 mb-1">
+                             <span className="text-xs font-bold uppercase tracking-wider text-teal-600 bg-teal-50 px-2 py-0.5 rounded">
+                               {booking.sport_category}
+                             </span>
+                             <span className="text-xs text-gray-400">#{booking.id}</span>
+                          </div>
+                          
+                          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                             {booking.venue_name}
+                          </h3>
+                          
+                          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-600">
+                             <div className="flex items-center">
+                                <Clock className="w-4 h-4 mr-1.5 text-gray-400" />
+                                {new Date(booking.start_time).toLocaleDateString()} &bull; {new Date(booking.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                             </div>
+                             <div className="font-medium text-gray-900">
+                                ₹{booking.total_price.toFixed(2)}
+                             </div>
+                          </div>
+                        </div>
 
-                      <p className="text-gray-600">
-                        {new Date(booking.start_time).toLocaleDateString()} | {new Date(booking.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </p>
-
-                      <div className="mt-2 flex justify-between items-center">
-                        <p className="text-gray-600">
-                          <strong>Status:</strong> <span className="capitalize font-medium text-red-600">{booking.status}</span>
-                        </p>
-                        <p className="text-xl font-bold text-gray-800">
-                          ₹{booking.total_price.toFixed(2)}
-                        </p>
+                        {/* Right: Status Badge */}
+                        <div className="flex-shrink-0 flex items-center">
+                           {getStatusBadge(booking.status)}
+                        </div>
                       </div>
                     </div>
                   </div>
