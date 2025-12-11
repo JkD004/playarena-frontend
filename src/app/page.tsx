@@ -12,32 +12,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Add the 'href' prop to each section */}
       <FullScreenSection
         title="Explore all Turfs"
         subtitle="Find the best football and cricket turfs near you"
-        imageUrl="/images/cantonment-turf.jpg"
-        href="/sports/turfs" 
+        imageUrl="linear-gradient(black, black)"
+        href="/sports/turfs"
       />
 
       <FullScreenSection
         title="Swimming Pools"
-        subtitle="Dive into our refreshing pools"
-        imageUrl="/images/swimming.jpg"
+        subtitle="Dive into refreshing pools"
+        imageUrl="linear-gradient(black, black)"
         href="/sports/swimming-pools"
       />
 
       <FullScreenSection
         title="Badminton Courts"
         subtitle="Book a court for your next match"
-        imageUrl="/images/badminton.jpg"
+        imageUrl="linear-gradient(black, black)"
         href="/sports/badminton"
       />
 
       <FullScreenSection
         title="Snooker Clubs"
         subtitle="Find a table and start playing"
-        imageUrl="/images/snooker.jpg"
+        imageUrl="linear-gradient(black, black)"
         href="/sports/snooker"
       />
 

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import toast from 'react-hot-toast';
 
 // Use a global variable for the Razorpay instance
 declare global {
@@ -39,7 +40,7 @@ export default function PaymentPage() {
       // 1. Load the script
       const res = await loadRazorpayScript();
       if (!res) {
-        alert('Razorpay SDK failed to load. Are you online?');
+        toast.success('Razorpay SDK failed to load. Are you online?');
         setIsProcessing(false);
         return;
       }
@@ -78,10 +79,10 @@ export default function PaymentPage() {
           });
 
           if (verifyRes.ok) {
-            alert('Payment Successful! Booking Confirmed.');
+            toast.success('Payment Successful! Booking Confirmed.');
             router.push('/bookings/upcoming');
           } else {
-            alert('Payment verification failed.');
+            toast.success('Payment verification failed.');
           }
         },
         prefill: {
@@ -100,7 +101,7 @@ export default function PaymentPage() {
 
     } catch (err) {
       console.error(err);
-      alert("Error initiating payment");
+      toast.error(err instanceof Error ? err.message :"Error initiating payment");
     } finally {
       setIsProcessing(false);
     }

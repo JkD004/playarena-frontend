@@ -11,6 +11,8 @@ import {
   Calendar, CheckCircle, Trash2, AlertTriangle 
 } from 'lucide-react';
 
+import toast from 'react-hot-toast';
+
 interface VenueDetail {
   venue_id: number;
   name: string;
@@ -82,10 +84,10 @@ export default function AdminVenueDetailsPage() {
 
         if (!res.ok) throw new Error("Failed to delete venue");
 
-        alert("Venue deleted successfully.");
+        toast.success("Venue deleted successfully.");
         router.push("/admin/venues/manage"); // Redirect to list
     } catch (error) {
-        alert("Error deleting venue");
+        toast.error(error instanceof Error ? error.message :"Error deleting venue");
         console.error(error);
     } finally {
         setIsDeleting(false);

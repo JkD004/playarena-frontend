@@ -11,6 +11,11 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import Image from 'next/image';
+import { ShieldAlert } from 'lucide-react';
+
+
+
+import toast from 'react-hot-toast';
 
 interface Venue {
   id: number;
@@ -167,11 +172,18 @@ export default function VenueDetailPage() {
     if (!venue) return;
     // -------------------------
 
-    // 1. Check Login
+    // 1. Check Login (Polished)
     if (!token) {
-      alert("Please login to book a slot.");
+      toast.error("Please login to book a slot", {
+        duration: 4000,
+        icon: '🔒',
+        style: {
+          borderRadius: '10px',
+          background: '#333',
+          color: '#fff',
+        },
+      });
 
-      // Now safe to use venue.id because of the check above
       const currentPath = `/venues/${venue.id}`;
       router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
       return;
@@ -203,7 +215,7 @@ export default function VenueDetailPage() {
       router.push(`/bookings/${data.id}/pay`);
 
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Booking failed');
+      toast.error(err instanceof Error ? err.message :'Booking failed');
       const dateStr = getLocalDateString(selectedDate);
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/venues/${id}/slots?date=${dateStr}`)
         .then(r => r.json())
@@ -343,6 +355,19 @@ export default function VenueDetailPage() {
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-gray-600">Price</span>
                     <span className="text-xl font-bold text-gray-900">₹{venue.price_per_hour}</span>
+                  </div>
+
+                  {/* 👇 FIXED: NO REFUND NOTICE (Visual Only, No Checkbox Logic Here) */}
+                  <div className="bg-red-50 border border-red-100 rounded-lg p-3 mb-4 flex gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <ShieldAlert className="h-4 w-4 text-red-500" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-red-800 uppercase">Non-Refundable</h4>
+                      <p className="text-xs text-red-700 mt-0.5 leading-relaxed">
+                        Payments are final. No refunds for cancellations.
+                      </p>
+                    </div>
                   </div>
 
                   <button

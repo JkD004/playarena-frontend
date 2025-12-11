@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Scanner, IDetectedBarcode } from '@yudiel/react-qr-scanner'; 
 import { CheckCircle, XCircle, User, Calendar, Clock, MapPin } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface BookingDetail {
   booking_id: number;
@@ -75,14 +76,14 @@ export default function ScannerPage() {
       });
 
       if (res.ok) {
-        alert("✅ Verified! Player marked as PRESENT.");
+        toast.success("✅ Verified! Player marked as PRESENT.");
         setBooking(prev => prev ? { ...prev, status: 'present' } : null);
       } else {
-        alert("Failed to update status.");
+        toast.success("Failed to update status.");
       }
     } catch (err) {
       console.error(err);
-      alert("Error processing check-in.");
+      toast.error(err instanceof Error ? err.message :"Error processing check-in.");
     } finally {
       setIsProcessing(false);
     }

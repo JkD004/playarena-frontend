@@ -10,6 +10,8 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Download, CheckCircle, MapPin, Calendar, Clock, User, Hash } from 'lucide-react';
 
+import toast from 'react-hot-toast';
+
 interface BookingDetail {
   id: number;
   user_id: number;           // <-- NEW
@@ -81,7 +83,7 @@ export default function TicketPage() {
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         pdf.save(`SportGrid-Ticket-${bookingId}.pdf`);
     } catch (error) {
-        alert("Could not generate PDF.");
+        toast.error(error instanceof Error ? error.message :"Could not generate PDF.");
     } finally {
         setDownloading(false);
     }

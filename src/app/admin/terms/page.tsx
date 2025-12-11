@@ -6,6 +6,8 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
 import { ArrowLeft, Save, FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
+
 
 export default function ManageTermsPage() {
   const [content, setContent] = useState('');
@@ -42,13 +44,13 @@ export default function ManageTermsPage() {
       });
       
       if (res.ok) {
-        alert("Terms updated successfully!");
+        toast.success("Terms updated successfully!");
       } else {
-        alert("Failed to update terms.");
+        toast.success("Failed to update terms.");
       }
     } catch (err) {
       console.error(err);
-      alert("Error saving terms.");
+      toast.error(err instanceof Error ? err.message :"Error saving terms.");
     } finally {
       setIsSaving(false);
     }

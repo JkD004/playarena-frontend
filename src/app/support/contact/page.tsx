@@ -48,7 +48,7 @@ export default function ContactPage() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Email Support</h3>
             <p className="text-gray-500 text-sm mb-4">For general inquiries & listings</p>
-            <a href="mailto:theplayarenaa@gmail.com" className="text-lg font-bold text-blue-700 hover:underline break-all">
+            <a href="mailto:thesportgrid@gmail.com" className="text-lg font-bold text-blue-700 hover:underline break-all">
               thesportgrid@gmail.com
             </a>
           </div>
@@ -84,7 +84,7 @@ export default function ContactPage() {
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-500">Response time</p>
-            <p className="text-xl font-bold text-gray-800">Within 24 Hours</p>
+            <p className="text-xl font-bold text-gray-800">10 AM - 5 PM</p>
           </div>
         </div>
 

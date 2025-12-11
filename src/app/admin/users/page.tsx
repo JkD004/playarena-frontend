@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
 import { Trash2, Shield, User, ArrowLeft, Search, Mail, Calendar } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface UserData {
   id: number;
@@ -69,7 +70,7 @@ export default function ManageUsersPage() {
         fetchUsers();
       }
     } catch (err) {
-      alert("Failed to delete user");
+      toast.error(err instanceof Error ? err.message :"Failed to delete user");
     }
   };
 
@@ -89,7 +90,7 @@ export default function ManageUsersPage() {
         fetchUsers();
       }
     } catch (err) {
-      alert("Failed to update role");
+      toast.error(err instanceof Error ? err.message :"Failed to update role");
     }
   };
 

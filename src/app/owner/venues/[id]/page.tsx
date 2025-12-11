@@ -279,6 +279,7 @@ export default function VenueDetailPage() {
                   })}
                 </div>
 
+              
                 {/* TIME SLOTS */}
                 <p className="text-sm text-gray-500 mb-2">
                   {selectedDate.toLocaleDateString("en-US", { month: "long", day: "numeric" })}
@@ -327,6 +328,7 @@ export default function VenueDetailPage() {
                   <span>Price</span>
                   <span className="text-xl font-bold">₹{venue.price_per_hour}</span>
                 </div>
+
 
                 {/* BOOK BUTTON */}
                 <button
