@@ -23,6 +23,7 @@ interface BookingDetail {
   total_price: number;
   status: string;
   created_at: string;
+  qr_code: string;
 }
 
 export default function TicketPage() {
@@ -106,15 +107,6 @@ export default function TicketPage() {
   const formatTime = (dateStr: string) =>
     new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  const formatDateTime = (dateStr: string) =>
-    new Date(dateStr).toLocaleString([], {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
   if (loading) return <div className="p-10 text-center text-gray-600">Loading Ticket...</div>;
   if (!booking) return <div className="p-10 text-center text-red-500">Booking not found.</div>;
 
@@ -145,13 +137,13 @@ export default function TicketPage() {
 
             {/* Booking Info */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #f3f4f6', paddingBottom: '16px' }}>
-               <div>
-                  <p style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 'bold' }}>Booked On</p>
-                  <p style={{ fontSize: '12px', color: '#374151' }}>{new Date(booking.created_at).toLocaleString()}</p>
-               </div>
-               <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                 {booking.status}
-               </span>
+              <div>
+                <p style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 'bold' }}>Booked On</p>
+                <p style={{ fontSize: '12px', color: '#374151' }}>{new Date(booking.created_at).toLocaleString()}</p>
+              </div>
+              <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                {booking.status}
+              </span>
             </div>
 
             {/* Venue Info */}
@@ -197,10 +189,11 @@ export default function TicketPage() {
             {/* QR */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
               <div style={{ padding: '8px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                <QRCodeCanvas value={`BookingID:${booking.id}`} size={100} />
+                <QRCodeCanvas value={booking.qr_code} size={100} />
               </div>
               <p style={{ fontSize: '11px', color: '#9ca3af' }}>Scan to verify entry</p>
             </div>
+
           </div>
         </div>
 
