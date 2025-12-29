@@ -28,39 +28,60 @@ export default function ScannerPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanActive, setScanActive] = useState(true);
 
-  // 1. Handle QR Scan
+  // ----------------------------------------------------
+  // 1. Handle QR Scan (UPDATED FOR SECURE VERIFICATION)
+  // ----------------------------------------------------
   const handleScan = async (results: IDetectedBarcode[]) => {
     if (!results || results.length === 0) return;
     
-    const result = results[0].rawValue;
-    if (!result || !token) return;
+    const scannedData = results[0].rawValue;
+    if (!scannedData || !token) return;
     
-    // Format is "BookingID:123"
-    const parts = result.split(':');
-    if (parts.length !== 2 || parts[0] !== 'BookingID') {
-        return;
-    }
-
-    const bookingId = parts[1];
-    setScanActive(false); // Stop scanning while we fetch
+    // Stop scanning immediately so we don't spam the API
+    setScanActive(false); 
     setError(null);
     setBooking(null);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/owner/bookings/${bookingId}`, {
+      // STEP A: Verify the Cryptographic Signature
+      // We send the raw string "101|a94b8..." to the backend
+      const verifyRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/bookings/verify`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ qr_code: scannedData }),
+      });
+
+      const verifyData = await verifyRes.json();
+
+      // If backend says it's fake or invalid
+      if (!verifyData.valid) {
+        throw new Error(verifyData.message || "Invalid Ticket Signature");
+      }
+
+      // STEP B: Fetch Full Booking Details (Only if Valid)
+      // The verification API gives us the clean booking_id
+      const bookingId = verifyData.booking_id;
+
+      const detailsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/owner/bookings/${bookingId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       
-      if (!res.ok) throw new Error("Booking not found or access denied.");
+      if (!detailsRes.ok) throw new Error("Could not fetch booking details.");
       
-      const data = await res.json();
+      const data = await detailsRes.json();
       setBooking(data);
+      toast.success("Ticket Verified Successfully! ✅");
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Scan failed");
+      // Optional: Play error sound here if desired
     }
   };
 
-  // 2. Handle Check-In (Mark Present)
+  // 2. Handle Check-In (Mark Present) - (NO CHANGES HERE)
   const handleCheckIn = async () => {
     if (!booking || !token) return;
     setIsProcessing(true);
@@ -76,14 +97,14 @@ export default function ScannerPage() {
       });
 
       if (res.ok) {
-        toast.success("✅ Verified! Player marked as PRESENT.");
+        toast.success("✅ Player Checked-In Successfully!");
         setBooking(prev => prev ? { ...prev, status: 'present' } : null);
       } else {
-        toast.success("Failed to update status.");
+        toast.error("Failed to update status.");
       }
     } catch (err) {
       console.error(err);
-      toast.error(err instanceof Error ? err.message :"Error processing check-in.");
+      toast.error("Error processing check-in.");
     } finally {
       setIsProcessing(false);
     }
@@ -101,7 +122,6 @@ export default function ScannerPage() {
                 onScan={handleScan}
                 onError={(error: unknown) => console.log(error)}
                 scanDelay={500}
-                // Removed 'audio' property as it was causing the error
                 components={{ finder: false }} 
              />
              <div className="absolute inset-0 border-2 border-white/30 pointer-events-none m-8 rounded-lg"></div>
@@ -113,10 +133,12 @@ export default function ScannerPage() {
 
         {/* --- ERROR MESSAGE --- */}
         {error && (
-            <div className="mt-6 bg-red-100 text-red-800 p-4 rounded-lg flex items-center max-w-sm w-full">
-                <XCircle className="w-6 h-6 mr-3" />
-                <span>{error}</span>
-                <button onClick={() => { setError(null); setScanActive(true); }} className="ml-auto text-sm underline font-bold">Try Again</button>
+            <div className="mt-6 bg-red-100 text-red-800 p-4 rounded-lg flex items-center max-w-sm w-full border border-red-300">
+                <XCircle className="w-6 h-6 mr-3 flex-shrink-0" />
+                <span className="font-semibold">{error}</span>
+                <button onClick={() => { setError(null); setScanActive(true); }} className="ml-auto text-sm underline font-bold whitespace-nowrap pl-2">
+                    Try Again
+                </button>
             </div>
         )}
 
@@ -170,12 +192,13 @@ export default function ScannerPage() {
                             {isProcessing ? 'Verifying...' : 'VERIFY & CHECK-IN'}
                         </button>
                     ) : booking.status === 'present' ? (
-                         <div className="w-full py-4 bg-blue-50 text-blue-700 rounded-xl font-bold text-center border border-blue-200">
+                         <div className="w-full py-4 bg-blue-50 text-blue-700 rounded-xl font-bold text-center border border-blue-200 flex items-center justify-center">
+                            <CheckCircle className="w-5 h-5 mr-2" />
                             Already Checked In
                          </div>
                     ) : (
                         <div className="w-full py-4 bg-gray-100 text-gray-500 rounded-xl font-bold text-center">
-                            Invalid Status: {booking.status}
+                            Status: {booking.status}
                         </div>
                     )}
 
